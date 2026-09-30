@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>html{color-scheme:light}body{margin:0;font-family:system-ui}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Backbone 桌款配置器</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Instrument+Sans:wght@500;600&display=swap">
+<style>
+/* Layout: 3D stage fills the left, a spec panel on the right; stacks on phones. */
+:root{
+  --bg:#f2f0ec; --panel:#ffffff; --fg:#1c1b19; --muted:#6f6b64; --line:#dcd8d1;
+  --stage:#e6e7e9; --accent:#1c1b19; --accent-fg:#ffffff; --chip:#f6f4f0;
+  --body:"Noto Sans TC",system-ui,-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
+  --ui:"Instrument Sans","Noto Sans TC",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#161513; --panel:#1f1e1b; --fg:#ede9e2; --muted:#9b968d; --line:#35332e;
+  --stage:#e6e7e9; --accent:#ede9e2; --accent-fg:#161513; --chip:#282622; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#161513; --panel:#1f1e1b; --fg:#ede9e2; --muted:#9b968d; --line:#35332e;
+  --stage:#e6e7e9; --accent:#ede9e2; --accent-fg:#161513; --chip:#282622; color-scheme:dark}
+
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;line-height:1.5}
+*{box-sizing:border-box}
+.app{display:flex;flex-direction:column;height:100%;min-height:100%}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:12px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+header h1{font:600 15px/1.2 var(--ui);letter-spacing:.02em;margin:0}
+header h1 small{font:500 11px var(--ui);color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-left:10px}
+header .spec{font:500 12px var(--ui);color:var(--muted);font-variant-numeric:tabular-nums}
+main{display:flex;flex:1;min-height:0}
+.stage{flex:1;min-width:0;position:relative;background:#c0c2c5;overflow:hidden}
+.stage canvas{display:block;width:100%;height:100%}
+.status{position:absolute;left:16px;top:14px;font:500 12px var(--ui);color:#1c1b19;background:rgba(255,255,255,.75);padding:3px 8px;border-radius:4px}
+.status:empty{display:none}
+.hint{position:absolute;left:16px;bottom:14px;font:500 11px var(--ui);color:#3a3c40;background:rgba(255,255,255,.55);padding:3px 8px;border-radius:4px;letter-spacing:.06em;pointer-events:none}
+.code{position:absolute;right:16px;top:14px;font:600 12px var(--ui);color:#1c1b19;background:#ffffff;border:1px solid #cfd1d4;padding:6px 10px;border-radius:4px;letter-spacing:.08em;font-variant-numeric:tabular-nums}
+.bgseg{position:absolute;right:16px;bottom:12px;display:inline-flex;border:1px solid #cfd1d4;border-radius:4px;overflow:hidden;background:#fff}
+.bgseg button{appearance:none;border:0;background:#fff;color:#66686c;padding:5px 10px;font:500 11px var(--ui);cursor:pointer}
+.bgseg button[aria-pressed="true"]{background:#1c1b19;color:#fff}
+.reset{position:absolute;right:120px;bottom:12px;appearance:none;border:1px solid #cfd1d4;background:#ffffff;color:#66686c;font:500 11px var(--ui);padding:5px 9px;border-radius:4px;cursor:pointer}
+aside{width:360px;flex:none;background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:18px 20px 24px;display:flex;flex-direction:column;gap:20px}
+section h2{font:500 11px var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+section h2 span{font-family:var(--body);text-transform:none;letter-spacing:0;color:var(--fg);font-weight:500;font-size:13px;text-align:right}
+.models{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.model{min-width:0;appearance:none;border:1px solid var(--line);background:var(--chip);padding:0;border-radius:4px;cursor:pointer;text-align:left;color:var(--fg);font-family:var(--body);overflow:hidden}
+.model img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--stage)}
+.model b{display:block;font-weight:500;font-size:12px;padding:6px 8px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.model small{display:block;font:500 10px var(--ui);color:var(--muted);padding:0 8px 7px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.model[aria-pressed="true"],.board[aria-pressed="true"],.sw[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.model:hover,.board:hover,.sw:hover{border-color:var(--muted)}
+.sizes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font:500 11px var(--ui);color:var(--muted);letter-spacing:.06em}
+.field select{appearance:none;border:1px solid var(--line);background:var(--chip);color:var(--fg);padding:8px 10px;border-radius:4px;font:500 13px var(--ui);font-variant-numeric:tabular-nums;width:100%}
+.field select:disabled{opacity:.5}
+.boards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.board{min-width:0;appearance:none;border:1px solid var(--line);background:var(--chip);padding:4px;border-radius:4px;cursor:pointer;text-align:left;color:var(--fg);font-family:var(--body)}
+.board img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:2px}
+.board b{display:block;font-weight:500;font-size:11px;margin-top:5px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.board small{display:block;font:500 9.5px var(--ui);color:var(--muted);letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tabs button{appearance:none;border:1px solid var(--line);background:var(--chip);color:var(--muted);padding:4px 10px;border-radius:999px;font:500 11px var(--body);cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.board:focus-visible,.sw:focus-visible,.seg button:focus-visible,.btn:focus-visible,.model:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.frames{display:flex;gap:8px;flex-wrap:wrap}
+.sw{appearance:none;border:1px solid var(--line);background:var(--chip);border-radius:4px;padding:6px 10px 6px 6px;display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--fg);font:500 12px var(--body)}
+.sw i{width:18px;height:18px;border-radius:50%;border:1px solid rgba(0,0,0,.18);display:block}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg button{appearance:none;border:0;background:var(--chip);color:var(--muted);padding:6px 14px;font:500 12px var(--body);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.summary{border-top:1px solid var(--line);padding-top:14px;display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:13px}
+.summary dt{color:var(--muted)}
+.summary dd{margin:0;font-variant-numeric:tabular-nums}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{appearance:none;border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg);padding:9px 14px;border-radius:4px;font:500 13px var(--body);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+.note{font-size:11px;color:var(--muted);margin:0}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--accent);color:var(--accent-fg);padding:8px 14px;border-radius:4px;font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.shot{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:24px;z-index:9}
+.shot figure{margin:0;background:var(--panel);padding:12px;border-radius:6px;max-width:min(960px,100%);max-height:100%;display:flex;flex-direction:column;gap:10px}
+.shot img{max-width:100%;max-height:70vh;object-fit:contain;border-radius:3px}
+.shot figcaption{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+@media (max-width:760px){
+  main{flex-direction:column}
+  .stage{height:50vh;flex:none}
+  aside{width:auto;border-left:0;border-top:1px solid var(--line);padding:16px}
+}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1 id="title">Elite <small>Backbone · Configurator · Demo</small></h1>
+    <div class="spec" id="spec">W 1200 × D 600 × H 750 mm</div>
+  </header>
+  <main>
+    <div class="stage" id="stage">
+      <div class="status" id="status">載入模型…</div>
+      <div class="code" id="code">EL · 1200×600 · BK1-26111 · BK</div>
+      <div class="hint">拖曳旋轉 · 滾輪縮放 · 右鍵平移</div>
+      <button class="reset" type="button" id="btnReset">重設視角</button>
+      <div class="bgseg" id="bgseg" aria-label="背景"></div>
+    </div>
+    <aside>
+      <section>
+        <h2>桌款 <span id="modelNote"></span></h2>
+        <div class="models" id="models"></div>
+      </section>
+      <section id="sizeSection" hidden>
+        <h2>尺寸 <span id="sizeNote"></span></h2>
+        <div class="sizes">
+          <div class="field"><label for="selW">寬 W (mm)</label><select id="selW"></select></div>
+          <div class="field"><label for="selD">深 D (mm)</label><select id="selD"></select></div>
+        </div>
+      </section>
+      <section>
+        <h2>桌板板材 <span id="boardName"></span></h2>
+        <div class="tabs" id="boardTabs"></div>
+        <div class="boards" id="boards"></div>
+      </section>
+      <section id="cabSection" hidden>
+        <h2>櫃體板材 <span id="cabName"></span></h2>
+        <div class="tabs" id="cabTabs"></div>
+        <div class="boards" id="cabs"></div>
+      </section>
+      <section>
+        <h2>紋路方向</h2>
+        <div class="seg" id="grain">
+          <button type="button" data-g="h" aria-pressed="true">橫紋</button>
+          <button type="button" data-g="v" aria-pressed="false">直紋</button>
+        </div>
+      </section>
+      <section>
+        <h2>腳架烤漆 <span id="frameName"></span></h2>
+        <div class="frames" id="frames"></div>
+      </section>
+      <section>
+        <dl class="summary">
+          <dt>桌款</dt><dd id="sModel"></dd>
+          <dt>尺寸</dt><dd id="sSize"></dd>
+          <dt>桌板</dt><dd id="sBoard"></dd>
+          <dt>櫃體</dt><dd id="sCab"></dd>
+          <dt>紋路</dt><dd id="sGrain"></dd>
+          <dt>腳架</dt><dd id="sFrame"></dd>
+          <dt>配置碼</dt><dd id="sCode"></dd>
+        </dl>
+      </section>
+      <section>
+        <div class="actions">
+          <button class="btn" type="button" id="btnShot">產生預覽圖</button>
+          <button class="btn ghost" type="button" id="btnLink">複製分享連結</button>
+        </div>
+      </section>
+      <p class="note">螢幕顯色與實體板材有落差，以實體樣板為準；板材依 2025 新板材／2024 系統板／2022 選色三個系列，代碼為正式料號；腳架色為示意。</p>
+    </aside>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { viewer, MODELS, BOARDS, FRAMES, BACKDROPS } from './app.js';
+const $ = id => document.getElementById(id);
+const state = { model:'kz', w:null, d:null, h:0, board:'BK1-26111', cab:'BK1-26111', grain:'h', frame:'black' };
+const SERIES = ['2025 新板材','2024 系統板','2022 選色'];
+const boardsData = await fetch('tex/boards.json').then(r=>r.json());
+BOARDS.push(...boardsData.map(b=>({ id:b.code, code:b.code, name:b.name, series:b.series })));
+const status = $('status');
+window.addEventListener('error', e=>{ status.textContent='頁面錯誤：'+e.message; });
+
+// restore from #kz-1200-600-black-h-walnut
+(()=>{
+  const h = location.hash.replace('#','').split('-');
+  if (h.length >= 6) {
+    const [m, w, d, f, g, ...b] = h; const [board, cab] = b.join('-').split('~');
+    if (MODELS.some(x=>x.id===m)) state.model = m;
+    if (BOARDS.some(x=>x.id===cab)) state.cab = cab;
+    if (FRAMES.some(x=>x.id===f)) state.frame = f;
+    if (g==='h'||g==='v') state.grain = g;
+    if (BOARDS.some(x=>x.id===board)) state.board = board;
+  }
+})();
+
+const modelsEl = $('models'), boardsEl = $('boards'), framesEl = $('frames'), selW = $('selW'), selD = $('selD');
+MODELS.forEach(m=>{
+  const b = document.createElement('button'); b.className='model'; b.type='button'; b.dataset.id=m.id; b.id='model-'+m.id;
+  b.innerHTML = `<img src="models/${m.id}-thumb.jpg" alt=""><b>${m.name}</b><small>${m.code} · ${m.note}</small>`;
+  b.addEventListener('click', ()=>{ if(state.model!==m.id){ state.model=m.id; state.w=null; state.d=null; switchModel(); } });
+  modelsEl.appendChild(b);
+});
+function buildBoardGrid(gridEl, tabsEl, prefix, getSel, onPick){
+  let series = SERIES[0];
+  const render = ()=>{
+    tabsEl.querySelectorAll('button').forEach(t=>t.setAttribute('aria-pressed', t.dataset.s===series));
+    gridEl.innerHTML='';
+    BOARDS.filter(b=>b.series===series).forEach(b=>{
+      const btn = document.createElement('button'); btn.className='board'; btn.type='button'; btn.dataset.id=b.id; btn.id=prefix+'-'+b.id;
+      btn.innerHTML = `<img src="tex/${b.id}-thumb.jpg" alt="" loading="lazy"><b>${b.name}</b><small>${b.code}</small>`;
+      btn.setAttribute('aria-pressed', b.id===getSel());
+      btn.addEventListener('click', ()=>onPick(b.id));
+      gridEl.appendChild(btn);
+    });
+  };
+  SERIES.forEach(sName=>{
+    const t = document.createElement('button'); t.type='button'; t.dataset.s=sName; t.id=prefix+'-tab-'+SERIES.indexOf(sName);
+    t.textContent = `${sName} ${BOARDS.filter(b=>b.series===sName).length}`;
+    t.addEventListener('click', ()=>{ series=sName; render(); });
+    tabsEl.appendChild(t);
+  });
+  const sel = BOARDS.find(b=>b.id===getSel()); if (sel) series = sel.series;
+  render();
+  return { refresh(){ const s2 = BOARDS.find(b=>b.id===getSel()); if (s2 && s2.series!==series){ series=s2.series; render(); } else gridEl.querySelectorAll('.board').forEach(el=>el.setAttribute('aria-pressed', el.dataset.id===getSel())); } };
+}
+const boardGrid = buildBoardGrid(boardsEl, $('boardTabs'), 'board', ()=>state.board, id=>{ state.board=id; applyLook(); });
+const cabsEl = $('cabs');
+const cabGrid = buildBoardGrid(cabsEl, $('cabTabs'), 'cab', ()=>state.cab, id=>{ state.cab=id; applyLook(); });
+FRAMES.forEach(f=>{
+  const btn = document.createElement('button'); btn.className='sw'; btn.type='button'; btn.dataset.id=f.id; btn.id='frame-'+f.id;
+  btn.innerHTML = `<i style="background:${f.hex}"></i>${f.name}`;
+  btn.addEventListener('click', ()=>{ state.frame=f.id; applyLook(); });
+  framesEl.appendChild(btn);
+});
+$('grain').querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{ state.grain=b.dataset.g; applyLook(); }));
+selW.addEventListener('change', ()=>{ state.w=+selW.value; applySize(); });
+selD.addEventListener('change', ()=>{ state.d=+selD.value; applySize(); });
+$('btnReset').addEventListener('click', ()=>viewer.resetView());
+const bgseg = $('bgseg');
+Object.entries(BACKDROPS).forEach(([id,b])=>{
+  const t = document.createElement('button'); t.type='button'; t.id='bg-'+id; t.textContent=b.name; t.setAttribute('aria-pressed', id===viewer.backdrop());
+  t.addEventListener('click', ()=>{ viewer.setBackdrop(id); bgseg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x===t)); try{localStorage.setItem('bg',id);}catch{} });
+  bgseg.appendChild(t);
+});
+try { const saved = localStorage.getItem('bg'); if (saved && BACKDROPS[saved]) { viewer.setBackdrop(saved); bgseg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x.id==='bg-'+saved)); } } catch {}
+
+function fillSelect(sel, range, value){
+  sel.innerHTML='';
+  if (!range) { sel.disabled = true; const o=document.createElement('option'); o.textContent=value; sel.appendChild(o); return; }
+  sel.disabled = false;
+  for (let v=range.min; v<=range.max; v+=range.step){ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); }
+  if (![...sel.options].some(o=>+o.value===value)) { const o=document.createElement('option'); o.value=value; o.textContent=value; sel.prepend(o); }
+  sel.value = value;
+}
+const def = ()=>MODELS.find(m=>m.id===state.model);
+const board = ()=>BOARDS.find(b=>b.id===state.board);
+const frame = ()=>FRAMES.find(f=>f.id===state.frame);
+
+async function switchModel(){
+  const m = def();
+  status.textContent = '載入 '+m.name+'…';
+  modelsEl.querySelectorAll('.model').forEach(el=>el.setAttribute('aria-pressed', el.dataset.id===state.model));
+  try {
+    const size0 = await viewer.setModel(m, null, null, state.grain);
+    state.w = size0.w; state.d = size0.d;
+    state.h = size0.h;
+    fillSelect(selW, m.w, state.w); fillSelect(selD, m.d, state.d);
+    $('modelNote').textContent = m.note;
+    $('sizeNote').textContent = m.d ? '' : '此桌款僅可調整寬度';
+    $('cabSection').hidden = !viewer.hasCabinet();
+    status.textContent = '';
+    applySize(); applyLook();
+  } catch(e){ status.textContent = '模型載入失敗：'+(e.message||e); }
+}
+function applySize(){ viewer.setSize(state.w, state.d, state.grain); updateText(); }
+function applyLook(){
+  boardGrid.refresh();
+  framesEl.querySelectorAll('.sw').forEach(el=>el.setAttribute('aria-pressed', el.dataset.id===state.frame));
+  $('grain').querySelectorAll('button').forEach(el=>el.setAttribute('aria-pressed', el.dataset.g===state.grain));
+  cabGrid.refresh();
+  viewer.setBoard(state.board, state.grain, false);
+  viewer.setCabinet(state.cab, false);
+  viewer.setFrame(frame());
+  updateText();
+}
+function updateText(){
+  const m = def(), b = board(), f = frame(), g = state.grain==='h' ? '橫紋' : '直紋';
+  const cb = BOARDS.find(x=>x.id===state.cab), hasCab = !!m.cab;
+  const size = `W ${state.w} × D ${state.d} × H ${state.h} mm`;
+  const code = `${m.code}-${state.w}${state.d}-${b.code}${hasCab ? '/'+cb.code : ''}-${state.grain.toUpperCase()}-${f.code}`;
+  $('title').innerHTML = `${m.name} <small>Backbone · Configurator · Demo</small>`;
+  $('spec').textContent = size;
+  $('code').textContent = `${m.code} · ${state.w}×${state.d} · ${b.code} · ${f.code}`;
+  $('boardName').textContent = b.name; $('frameName').textContent = f.name;
+  $('sModel').textContent = `${m.name}（${m.code}）`; $('sSize').textContent = size;
+  $('sBoard').textContent = `${b.name} ${b.code}`; $('sGrain').textContent = g;
+  $('cabName').textContent = cb.name; $('sCab').textContent = hasCab ? `${cb.name} ${cb.code}` : '—';
+  $('sCab').parentElement.querySelectorAll('dt')[2].hidden = $('sCab').hidden = !hasCab;
+  $('sFrame').textContent = `${f.name}（${f.code}）`; $('sCode').textContent = code;
+  history.replaceState(null, '', `#${state.model}-${state.w}-${state.d}-${state.frame}-${state.grain}-${state.board}${hasCab ? '~'+state.cab : ''}`);
+}
+
+let tt; function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('show'),1800); }
+$('btnLink').addEventListener('click', async ()=>{
+  const url = location.href;
+  try { await navigator.clipboard.writeText(url); toast('已複製連結'); }
+  catch { const i=document.createElement('input'); i.value=url; document.body.appendChild(i); i.select(); toast('請按 Ctrl/⌘+C 複製'); setTimeout(()=>i.remove(),4000); }
+});
+$('btnShot').addEventListener('click', ()=>{
+  const url = viewer.snapshot();
+  const wrap = document.createElement('div'); wrap.className='shot';
+  wrap.innerHTML = `<figure><img src="${url}" alt="配置預覽圖"><figcaption><span>${$('sCode').textContent} · ${$('spec').textContent} · 長按或右鍵儲存圖片</span><button class="btn ghost" type="button">關閉</button></figcaption></figure>`;
+  wrap.querySelector('button').addEventListener('click', ()=>wrap.remove());
+  wrap.addEventListener('click', e=>{ if(e.target===wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
+});
+
+switchModel();
+</script>
+
+</body>
+</html>
