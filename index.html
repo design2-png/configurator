@@ -167,10 +167,19 @@ import { viewer, MODELS, BOARDS, FRAMES, BACKDROPS } from './app.js';
 const $ = id => document.getElementById(id);
 const state = { model:'kz', w:null, d:null, h:0, board:'BK1-26111', cab:'BK1-26111', grain:'h', frame:'black' };
 const SERIES = ['2025 新板材','2024 系統板','2022 選色'];
-const boardsData = await fetch('tex/boards.json').then(r=>r.json());
-BOARDS.push(...boardsData.map(b=>({ id:b.code, code:b.code, name:b.name, series:b.series })));
+let boardsError = '';
+try {
+  const r = await fetch('tex/boards.json', {cache:'no-cache'});
+  if (!r.ok) throw new Error('HTTP '+r.status);
+  const boardsData = await r.json();
+  BOARDS.push(...boardsData.map(b=>({ id:b.code, code:b.code, name:b.name, series:b.series })));
+} catch(e) {
+  boardsError = location.protocol==='file:' ? '請透過網址開啟（http/https），直接開本機檔案無法載入板材與模型。' : '板材清單載入失敗：tex/boards.json（'+e.message+'）。請確認 tex 資料夾已上傳。';
+  BOARDS.push({ id:'BK1-26111', code:'BK1-26111', name:'初嵐', series:'2025 新板材' });
+}
 const status = $('status');
 window.addEventListener('error', e=>{ status.textContent='頁面錯誤：'+e.message; });
+window.addEventListener('unhandledrejection', e=>{ status.textContent='頁面錯誤：'+(e.reason&&e.reason.message||e.reason); });
 
 // restore from #kz-1200-600-black-h-walnut
 (()=>{
@@ -260,9 +269,9 @@ async function switchModel(){
     $('modelNote').textContent = m.note;
     $('sizeNote').textContent = m.d ? '' : '此桌款僅可調整寬度';
     $('cabSection').hidden = !viewer.hasCabinet();
-    status.textContent = '';
+    status.textContent = boardsError;
     applySize(); applyLook();
-  } catch(e){ status.textContent = '模型載入失敗：'+(e.message||e); }
+  } catch(e){ status.textContent = '模型載入失敗：'+m.file+'（'+(e && (e.message||e.type) || e)+'）。請確認 models 資料夾已上傳。'; }
 }
 function applySize(){ viewer.setSize(state.w, state.d, state.grain); updateText(); }
 function applyLook(){
